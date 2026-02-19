@@ -1,0 +1,20 @@
+# Web Framework & Server
+fastapi
+uvicorn
+python-multipart
+
+# Frontend
+streamlit
+requests
+
+# SOAP & XML Processing
+zeep
+lxml
+
+# AI & LLM (Google GenAI)
+google-genai
+python-dotenv
+
+# Utilities
+pyyaml
+watchfiles

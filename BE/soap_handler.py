@@ -97,3 +97,10 @@ class GenericSoapValidator:
             schema_doc.append(s)
 
         return etree.XMLSchema(schema_doc)
+
+
+def validate_soap_xml(wsdl_path: str, soap_xml_bytes: bytes):
+    validator = GenericSoapValidator(wsdl_path)
+    soap_data = soap_xml_bytes.decode("utf-8")
+    validator.validate(soap_data)
+    return True

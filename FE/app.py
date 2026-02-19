@@ -30,29 +30,56 @@ with tab1:
     with col2:
         xsd_files = st.file_uploader("Select XSD Files", type=['xsd'], accept_multiple_files=True)
 
-    if st.button("Register Schema"):
-        if wsdl_file and xsd_files:
-            # Prepare files for multipart/form-data
-            files = [('wsdl', (wsdl_file.name, wsdl_file.getvalue(), 'application/octet-stream'))]
-            for xsd in xsd_files:
-                files.append(('xsds', (xsd.name, xsd.getvalue(), 'application/octet-stream')))
-            
-            data = {
-                "department": dept,
-                "service": service,
-                "version": version
-            }
-            
-            with st.spinner("Uploading..."):
-                response = requests.post(f"{BASE_URL}/upload/wsdl", data=data, files=files)
+    # Action Buttons
+    col_btn1, col_btn2 = st.columns(2)
+    
+    with col_btn1:
+        if st.button("Register Schema", use_container_width=True):
+            if wsdl_file and xsd_files:
+                files = [('wsdl', (wsdl_file.name, wsdl_file.getvalue(), 'application/octet-stream'))]
+                for xsd in xsd_files:
+                    files.append(('xsds', (xsd.name, xsd.getvalue(), 'application/octet-stream')))
                 
-            if response.status_code == 200:
-                st.success("✅ Schema registered successfully!")
-                st.json(response.json())
+                data = {"department": dept, "service": service, "version": version}
+                
+                with st.spinner("Uploading to Schema Registry..."):
+                    response = requests.post(f"{BASE_URL}/upload/wsdl", data=data, files=files)
+                    
+                if response.status_code == 200:
+                    st.success("Schema registered successfully!")
+                    st.json(response.json())
+                else:
+                    st.error(f"Upload failed: {response.text}")
             else:
-                st.error(f"❌ Upload failed: {response.text}")
-        else:
-            st.warning("Please provide both a WSDL and at least one XSD file.")
+                st.warning("Please provide both a WSDL and at least one XSD file.")
+
+    with col_btn2:
+        if st.button("Generate OAS 3.x Spec", use_container_width=True):
+            if dept and service and version:
+                payload = {"department": dept, "service": service, "version": version}
+                
+                with st.spinner("AI is analyzing WSDL/XSD to generate OpenAPI Spec..."):
+                    response = requests.post(f"{BASE_URL}/generate-oas", data=payload)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    st.success(f"OAS 3.x generated! Stored in: {result['saved_at']}")
+                    
+                    # Provide a Download Button for the generated YAML
+                    st.download_button(
+                        label="Download openapi.yaml",
+                        data=result['oas_content'],
+                        file_name=f"{service}_openapi.yaml",
+                        mime="text/yaml"
+                    )
+                    
+                    # Preview the result
+                    with st.expander("View Generated Specification"):
+                        st.code(result['oas_content'], language="yaml")
+                else:
+                    st.error(f"Generation failed: {response.text}")
+            else:
+                st.warning("Please ensure Department, Service, and Version are filled in the sidebar.")
 
 # ---------------------------------------------------------
 # TAB 2: VALIDATE SOAP REQUEST
@@ -86,10 +113,10 @@ with tab2:
             
             if response.status_code == 200:
                 st.balloons()
-                st.success("✨ SOAP Request is VALID")
+                st.success("SOAP Request is VALID")
                 st.json(response.json())
             else:
-                st.error("🚨 Validation Failed")
+                st.error("Validation Failed")
                 st.code(response.json().get("detail", "Unknown Error"), language="text")
         else:
             st.warning("Please provide SOAP XML data.")
